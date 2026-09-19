@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RAINBOWCHESS🌈​​​</title>
+<title>CHESS🌈⚜️​​​​</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>♟️</text></svg>">
 <style>
   :root{
@@ -178,6 +178,29 @@
   .motif-crown div{
     width:17%;
     border-radius:2px 2px 1px 1px;
+  }
+
+  /* Style Poussin / Mat */
+  .checkmate-chick {
+    font-size: min(8vw, 42px);
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+  }
+
+  /* Effet Noir et Blanc à l'échec et mat */
+  .board.game-over-checkmate {
+    filter: grayscale(100%);
+  }
+  .board.game-over-checkmate .piece:not(.checkmate-chick) {
+    filter: grayscale(100%);
+  }
+  .board.game-over-checkmate .piece.checkmate-chick {
+    filter: none !important;
   }
 
   .status-bar{
@@ -425,6 +448,7 @@ let selected=null;
 let selMoves=[];
 let lastMove=null;
 let gameOver=false;
+let isCheckmate=false;
 let history=[];
 
 const boardEl=document.getElementById('board');
@@ -461,6 +485,12 @@ function motifHTML(type,color){
 
 function render(){
   boardEl.innerHTML='';
+  if(isCheckmate){
+    boardEl.classList.add('game-over-checkmate');
+  } else {
+    boardEl.classList.remove('game-over-checkmate');
+  }
+
   for(let r=0;r<8;r++){
     for(let c=0;c<8;c++){
       const sq=document.createElement('div');
@@ -485,9 +515,18 @@ function render(){
           const inCheck = isAttacked(board,r,c,opp(p.color));
           if(inCheck) sq.classList.add('king-check');
         }
+        
         const pieceEl=document.createElement('div');
-        pieceEl.className='piece '+pieceColorClass(p.color);
-        pieceEl.innerHTML=motifHTML(p.type,p.color);
+        
+        // Si la partie est terminée par échec et mat et que c'est le roi perdant
+        if(isCheckmate && p.type==='k' && p.color===turn){
+          pieceEl.className='piece checkmate-chick';
+          pieceEl.innerHTML='🐤';
+        } else {
+          pieceEl.className='piece '+pieceColorClass(p.color);
+          pieceEl.innerHTML=motifHTML(p.type,p.color);
+        }
+        
         sq.appendChild(pieceEl);
       }
       sq.addEventListener('click',()=>onSquareClick(r,c));
@@ -545,14 +584,17 @@ function checkGameEnd(){
   if(moves.length===0){
     gameOver=true;
     if(inCheck){
+      isCheckmate=true;
       setStatus(turn==='w' ? '<b style="color:var(--danger)">Échec et mat !</b> Victoire des Noirs.' : '<b style="color:var(--danger)">Échec et mat !</b> Victoire des Blancs.');
     } else {
+      isCheckmate=false;
       setStatus('<b>Pat</b> — partie nulle');
     }
     render();
     return true;
   }
   
+  isCheckmate=false;
   if(inCheck){
     setStatus('<span style="color:var(--danger)"><b>Échec !</b></span>');
   } else {
@@ -565,7 +607,7 @@ function checkGameEnd(){
 function newGame(){
   board=initialBoard();
   turn='w';
-  selected=null; selMoves=[]; lastMove=null; gameOver=false;
+  selected=null; selMoves=[]; lastMove=null; gameOver=false; isCheckmate=false;
   history=[];
   setStatus('');
   render();
@@ -580,6 +622,7 @@ function restorePrevious(){
   selMoves=[];
   lastMove=s.lastMove;
   gameOver=false;
+  isCheckmate=false;
   checkGameEnd();
 }
 
